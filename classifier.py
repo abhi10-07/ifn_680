@@ -1,4 +1,5 @@
 import os
+from tabnanny import verbose
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -71,6 +72,18 @@ class Utils():
         labels = np.array(labels)
 
         return [features, labels]
+
+class Detect():
+    def __init__(self) -> None:
+        (features, labels) = Utils.load_data()
+
+        x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size = 0.1)
+
+        categories = ['daisy', 'dandelion', 'rose', 'sunflower', 'tulip']   
+
+        model = tf.keras.models.load_model('mymodel.h5')
+
+        model.evaluate(x_test, y_test, verbose = 1)
 
 (features, labels) = Utils.load_data()
 
