@@ -80,38 +80,51 @@ x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size 
 
 categories = ['daisy', 'dandelion', 'rose', 'sunflower', 'tulip']
 
-input_layer = tf.keras.layers.Input([224, 224, 3])
+def models(): 
+    
 
-conv1  = tf.keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'Same', activation = 'relu')(input_layer)
-pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2,2))(conv1)
+    input_layer = tf.keras.layers.Input([224, 224, 3])
 
-conv2 = tf.keras.layers.Conv2D(filters=64, kernel_size=(3,3), padding='Same', activation='relu')(pool1)
-pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv2)
+    conv1  = tf.keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'Same', activation = 'relu')(input_layer)
+    pool1 = tf.keras.layers.MaxPooling2D(pool_size=(2,2))(conv1)
 
-conv3 = tf.keras.layers.Conv2D(filters=96, kernel_size=(3,3), padding='Same', activation='relu')(pool2)
-pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv3)
+    conv2 = tf.keras.layers.Conv2D(filters=64, kernel_size=(3,3), padding='Same', activation='relu')(pool1)
+    pool2 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv2)
 
-conv4 = tf.keras.layers.Conv2D(filters=96, kernel_size=(3,3), padding='Same', activation='relu')(pool3)
-pool4 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv4)
+    conv3 = tf.keras.layers.Conv2D(filters=96, kernel_size=(3,3), padding='Same', activation='relu')(pool2)
+    pool3 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv3)
 
-flat1 = tf.keras.layers.Flatten()(pool4)
-dns1 = tf.keras.layers.Dense(512, activation='relu')(flat1)
-out = tf.keras.layers.Dense(5, activation='softmax')(dns1)
+    conv4 = tf.keras.layers.Conv2D(filters=96, kernel_size=(3,3), padding='Same', activation='relu')(pool3)
+    pool4 = tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2)) (conv4)
 
-#Model
-model = tf.keras.Model(input_layer, out)
+    flat1 = tf.keras.layers.Flatten()(pool4)
+    dns1 = tf.keras.layers.Dense(512, activation='relu')(flat1)
+    out = tf.keras.layers.Dense(5, activation='softmax')(dns1)
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    #Model
+    model = tf.keras.Model(input_layer, out)
 
-model.fit(x_train, y_train, batch_size=100, epochs=10)
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-model.save('mymodel.h5')
+    model.fit(x_train, y_train, batch_size=100, epochs=10)
+
+    model.save('mymodel.h5')
 
 
 def detect():
     model = tf.keras.models.load_model('mymodel.h5')
 
-    model.evaluate(x_test, y_test, verbose = 1)
+    # model.evaluate(x_test, y_test, verbose = 1)
+
+    prediction = model.predict(x_test)
+    plt.figure(figsize=(9,9))
+    for i in range(9):
+        plt.subplot(3, 3,i+1)
+        plt.imshow(x_test[i])
+        plt.xlabel('Actual: ' + categories[y_test[i]] + '\n Predicted:' + categories[np.argmax(prediction[i])])
+        plt.xticks([])
+
+    plt.show()  
 
 
 def my_team():
@@ -126,6 +139,7 @@ def my_team():
 
 if __name__ == "__main__":
     my_team()
+    detect()
 
 
 # ----------------------------------------
