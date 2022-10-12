@@ -78,8 +78,6 @@ class Utils():
 
 x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size = 0.1)
 
-categories = ['daisy', 'dandelion', 'rose', 'sunflower', 'tulip']
-
 def models(): 
     
 
@@ -139,6 +137,7 @@ def my_team():
 
 if __name__ == "__main__":
     my_team()
+    # models()
     detect()
 
 
