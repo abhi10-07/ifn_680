@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import pickle
+import datetime
 
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -109,29 +110,6 @@ def models():
 
     model.save('mymodel.h5')
 
-# Re-train models with mobilenet_v2
-def models_mobilenet_v2():
-    feature_extractor_model = "https://tfhub.dev/google/tf2-preview/mobilenet_v2/feature_vector/4"
-    pretrained_model_without_top_layer = hub.KerasLayer(feature_extractor_model,input_shape=(224,224,3), trainable=False)
-
-    num_of_flowers = categories.count
-
-    model = tf.keras.Sequential([
-            pretrained_model_without_top_layer,
-            tf.keras.layers.Dense(num_of_flowers)
-    ])
-
-    model.summary()
-
-    model.compile(
-    optimizer = "adam",
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics = ['acc'])
-    model.fit(x_train/255, y_train, epochs =10)
-
-    model.save('model_mobilenet_v2.h5')
-
-
 def detect():
     model = tf.keras.models.load_model('mymodel.h5')
     # model = tf.keras.models.load_model('model_mobilenet_v2.h5')
@@ -161,8 +139,7 @@ def my_team():
 
 if __name__ == "__main__":
     my_team()
-    # models()
-    models_mobilenet_v2()
+    models()
     # detect()
     # TBD
     # Task segragation
