@@ -6,6 +6,8 @@ import cv2
 import pickle
 
 import tensorflow as tf
+import tensorflow_hub as hub
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -80,7 +82,6 @@ x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size 
 
 def models(): 
     
-
     input_layer = tf.keras.layers.Input([224, 224, 3])
 
     conv1  = tf.keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'Same', activation = 'relu')(input_layer)
@@ -108,9 +109,32 @@ def models():
 
     model.save('mymodel.h5')
 
+# Re-train models with mobilenet_v2
+def models_mobilenet_v2():
+    feature_extractor_model = "https://tfhub.dev/google/tf2-preview/mobilenet_v2/feature_vector/4"
+    pretrained_model_without_top_layer = hub.KerasLayer(feature_extractor_model,input_shape=(224,224,3), trainable=False)
+
+    num_of_flowers = categories.count
+
+    model = tf.keras.Sequential([
+            pretrained_model_without_top_layer,
+            tf.keras.layers.Dense(num_of_flowers)
+    ])
+
+    model.summary()
+
+    model.compile(
+    optimizer = "adam",
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics = ['acc'])
+    model.fit(x_train/255, y_train, epochs =10)
+
+    model.save('model_mobilenet_v2.h5')
+
 
 def detect():
     model = tf.keras.models.load_model('mymodel.h5')
+    # model = tf.keras.models.load_model('model_mobilenet_v2.h5')
 
     # model.evaluate(x_test, y_test, verbose = 1)
 
@@ -138,7 +162,12 @@ def my_team():
 if __name__ == "__main__":
     my_team()
     # models()
-    detect()
+    models_mobilenet_v2()
+    # detect()
+    # TBD
+    # Task segragation
+    # Mobile net model
+    # Create new def for Mobile net model and Keep the Keras model
 
 
 # ----------------------------------------
