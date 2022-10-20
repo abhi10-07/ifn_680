@@ -161,9 +161,10 @@ if __name__ == "__main__":
     [train_dataset, validation_dataset, categories] = task4()  # TODO: test dataset
     task5(v2_model, train_dataset, validation_dataset)
     # TODO: task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
-    best_learning_rate = task7(v2_model, train_dataset, validation_dataset)
+    best_learning_rate = task7(
+        v2_model, train_dataset, validation_dataset)  # TODO: plotting
     best_momentum = task8(v2_model, train_dataset,
-                          validation_dataset, best_learning_rate)
+                          validation_dataset, best_learning_rate)  # TODO: plotting
 
     # task9 - Prepare your training, validation and test sets
     # task10 - Do 8 and 9 on new dataset
