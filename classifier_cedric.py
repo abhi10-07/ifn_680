@@ -78,9 +78,6 @@ def task5(v2_model, train_dataset, validation_dataset):
     hist = model.fit(
         train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
 
-    # model.save('task5_model.h5')
-    print(hist.history)
-
 
 def task7(v2_model, train_dataset, validation_dataset):
     print("Task 7 - Try different learning rates, plot and conclude")
@@ -100,7 +97,6 @@ def task7(v2_model, train_dataset, validation_dataset):
         hist = model.fit(
             train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
         hist_list.append(hist.history)
-        # model.save('task7_model_lr_{}.h5'.format(lr))
 
     best_model = hist_list[0]
     best_lr = learning_rates[0]
