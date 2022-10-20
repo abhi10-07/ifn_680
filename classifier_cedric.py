@@ -74,7 +74,7 @@ def task5(v2_model, train_dataset, validation_dataset):
                   loss=keras.losses.SparseCategoricalCrossentropy(),
                   metrics="accuracy")
 
-    initial_epochs = 10
+    initial_epochs = 3
     hist = model.fit(
         train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
 
@@ -96,7 +96,7 @@ def task7(v2_model, train_dataset, validation_dataset):
         model.compile(optimizer=opt,
                       loss=keras.losses.SparseCategoricalCrossentropy(),
                       metrics="accuracy")
-        initial_epochs = 10
+        initial_epochs = 3
         hist = model.fit(
             train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
         hist_list.append(hist.history)
@@ -106,7 +106,7 @@ def task7(v2_model, train_dataset, validation_dataset):
     best_lr = learning_rates[0]
 
     for i in range(len(learning_rates)):
-        if(hist_list[i]["accuracy"] > best_model["accuracy"]):
+        if(max(hist_list[i]["accuracy"]) > max(best_model["accuracy"])):
             best_model = hist_list[i]
             best_lr = learning_rates[i]
 
@@ -114,7 +114,7 @@ def task7(v2_model, train_dataset, validation_dataset):
 
 
 def task8(v2_model, train_dataset, validation_dataset, learning_rate):
-    print("Task 7 - Try different learning rates, plot and conclude")
+    print("Task 8 - Try different momentum rates, plot and conclude")
 
     momentum_rates = [0.01, 0.02, 0.03]
     hist_list = []
@@ -127,7 +127,7 @@ def task8(v2_model, train_dataset, validation_dataset, learning_rate):
         model.compile(optimizer=opt,
                       loss=keras.losses.SparseCategoricalCrossentropy(),
                       metrics="accuracy")
-        initial_epochs = 10
+        initial_epochs = 3
         hist = model.fit(
             train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
         hist_list.append(hist.history)
@@ -136,7 +136,7 @@ def task8(v2_model, train_dataset, validation_dataset, learning_rate):
     best_mr = momentum_rates[0]
 
     for i in range(len(momentum_rates)):
-        if(hist_list[i]["accuracy"] > best_model["accuracy"]):
+        if(max(hist_list[i]["accuracy"]) > max(best_model["accuracy"])):
             best_model = hist_list[i]
             best_mr = momentum_rates[i]
 
