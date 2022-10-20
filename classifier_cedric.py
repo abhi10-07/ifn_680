@@ -76,6 +76,24 @@ def task5(model, train_dataset, validation_dataset):
     model.save('task5_model.h5')
 
 
+def task7(model, train_dataset, validation_dataset):
+    print("Task 7 - Try different learning rates, plot and conclude")
+
+    learning_rates = [0.02, 0.005, 0.1]
+
+    for lr in learning_rates:
+        opt = tf.keras.optimizers.SGD(
+            learning_rate=lr, momentum=0.0, nesterov=False, name="SGD")
+        # Train the model on new data with LR 0.02
+        model.compile(optimizer=opt,
+                      loss=keras.losses.SparseCategoricalCrossentropy(),
+                      metrics="accuracy")
+        initial_epochs = 10
+        model.fit(
+            train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
+        model.save('task7_model_lr_{}.h5'.format(lr))
+
+
 def my_team():
     '''
     Return the list of the team members of this assignment submission as a list
@@ -94,7 +112,7 @@ if __name__ == "__main__":
     [train_dataset, validation_dataset, categories] = task4()
     task5(v2_model, train_dataset, validation_dataset)
     # task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
-    # task7 - Experiment with 3 different orders of magnitude for the learning rate
+    task7(v2_model, train_dataset, validation_dataset)
     # task8 - Best result, non zero momentum to the training with the SGD optimizer
     # task9 - Prepare your training, validation and test sets
     # task10 - Do 8 and 9 on new dataset
