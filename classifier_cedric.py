@@ -28,7 +28,7 @@ def task3(base_model):
     x = preprocess_input(inputs)
     x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tfl.Dropout(.2)(x)
+    x = tfl.Dropout(.2)(x)  # prevent overfitting
     # Classifying into 5 categories
     prediction_layer = tf.keras.layers.Dense(5, activation='softmax')
     outputs = prediction_layer(x)
@@ -54,12 +54,17 @@ def task4():
                                                       validation_split=0.2,
                                                       subset='validation',  # different subsets
                                                       seed=42)  # seed match to prevent overlapping
+
+    # Test dataset TODO
+
     categories = train_dataset.class_names
     return [train_dataset, validation_dataset, categories]
 
 
-def task5(model, train_dataset, validation_dataset):
+def task5(v2_model, train_dataset, validation_dataset):
     print("Task 5 - Compile and train with SGD")
+    model = tf.keras.models.clone_model(v2_model)
+
     opt = tf.keras.optimizers.SGD(
         learning_rate=0.01, momentum=0.0, nesterov=False, name="SGD"
     )
@@ -70,18 +75,21 @@ def task5(model, train_dataset, validation_dataset):
                   metrics="accuracy")
 
     initial_epochs = 10
-    model.fit(
+    hist = model.fit(
         train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
 
-    model.save('task5_model.h5')
+    # model.save('task5_model.h5')
+    print(hist.history)
 
 
-def task7(model, train_dataset, validation_dataset):
+def task7(v2_model, train_dataset, validation_dataset):
     print("Task 7 - Try different learning rates, plot and conclude")
 
-    learning_rates = [0.02, 0.005, 0.1]
+    learning_rates = [0.02, 0.005, 0.03]
+    hist_list = []
 
     for lr in learning_rates:
+        model = tf.keras.models.clone_model(v2_model)
         opt = tf.keras.optimizers.SGD(
             learning_rate=lr, momentum=0.0, nesterov=False, name="SGD")
         # Train the model on new data with LR 0.02
@@ -89,9 +97,50 @@ def task7(model, train_dataset, validation_dataset):
                       loss=keras.losses.SparseCategoricalCrossentropy(),
                       metrics="accuracy")
         initial_epochs = 10
-        model.fit(
+        hist = model.fit(
             train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
-        model.save('task7_model_lr_{}.h5'.format(lr))
+        hist_list.append(hist.history)
+        # model.save('task7_model_lr_{}.h5'.format(lr))
+
+    best_model = hist_list[0]
+    best_lr = learning_rates[0]
+
+    for i in range(len(learning_rates)):
+        if(hist_list[i]["accuracy"] > best_model["accuracy"]):
+            best_model = hist_list[i]
+            best_lr = learning_rates[i]
+
+    return best_lr
+
+
+def task8(v2_model, train_dataset, validation_dataset, learning_rate):
+    print("Task 7 - Try different learning rates, plot and conclude")
+
+    momentum_rates = [0.01, 0.02, 0.03]
+    hist_list = []
+
+    for mr in momentum_rates:
+        model = tf.keras.models.clone_model(v2_model)
+        opt = tf.keras.optimizers.SGD(
+            learning_rate=learning_rate, momentum=mr, nesterov=False, name="SGD")
+        # Train the model on new data with LR 0.02
+        model.compile(optimizer=opt,
+                      loss=keras.losses.SparseCategoricalCrossentropy(),
+                      metrics="accuracy")
+        initial_epochs = 10
+        hist = model.fit(
+            train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
+        hist_list.append(hist.history)
+
+    best_model = hist_list[0]
+    best_mr = momentum_rates[0]
+
+    for i in range(len(momentum_rates)):
+        if(hist_list[i]["accuracy"] > best_model["accuracy"]):
+            best_model = hist_list[i]
+            best_mr = momentum_rates[i]
+
+    return best_mr
 
 
 def my_team():
@@ -109,10 +158,12 @@ if __name__ == "__main__":
     print("Task 2")
     base_model = task2()
     v2_model = task3(base_model)
-    [train_dataset, validation_dataset, categories] = task4()
+    [train_dataset, validation_dataset, categories] = task4()  # TODO: test dataset
     task5(v2_model, train_dataset, validation_dataset)
-    # task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
-    task7(v2_model, train_dataset, validation_dataset)
-    # task8 - Best result, non zero momentum to the training with the SGD optimizer
+    # TODO: task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
+    best_learning_rate = task7(v2_model, train_dataset, validation_dataset)
+    best_momentum = task8(v2_model, train_dataset,
+                          validation_dataset, best_learning_rate)
+
     # task9 - Prepare your training, validation and test sets
     # task10 - Do 8 and 9 on new dataset
