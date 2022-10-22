@@ -2,15 +2,24 @@ from re import A
 #import matplotlib.pyplot as plt
 #import numpy as np
 import tensorflow as tf
-import tensorflow.keras.layers as tfl
 from tensorflow import keras
+from keras import layers
 from tensorflow.keras.preprocessing import image_dataset_from_directory
 
 BATCH_SIZE = 32
-IMG_SIZE = (160, 160)
+IMG_SIZE = (224, 224)
 IMG_SHAPE = IMG_SIZE + (3,)
+EPOCHS = 4
 preprocess_input = tf.keras.applications.mobilenet_v2.preprocess_input
 directory = "small_flower_dataset/"
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+tf.get_logger().setLevel('ERROR')
+
+data_augmentation = tf.keras.Sequential([
+    layers.RandomFlip("horizontal_and_vertical"),
+    layers.RandomRotation(0.2),
+])
 
 
 def task2():
@@ -19,83 +28,96 @@ def task2():
                                                    include_top=False,
                                                    weights='imagenet')
     base_model.trainable = False
+    # print(base_model.summary())
     return base_model
+
+
+def create_base_model(base_model, useAugmenter=False):
+    inputs = tf.keras.Input(shape=IMG_SHAPE)
+    if(useAugmenter):
+        # print("Model using augmenter")
+        x = data_augmentation(inputs)
+        x = preprocess_input(x)
+    else:
+        # print("Model not using augmenter")
+        x = preprocess_input(inputs)
+    x = base_model(x, training=False)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = layers.Dropout(.2)(x)  # prevent overfitting
+    # Classifying into 5 categories
+    prediction_layer = tf.keras.layers.Dense(5, activation="softmax")
+    outputs = prediction_layer(x)
+    # Create new model
+    new_model = tf.keras.Model(inputs, outputs)
+    # print(new_model.summary())
+    return new_model
 
 
 def task3(base_model):
     print("Task 3 - Replace last layer of downloaded NN")
-    inputs = tf.keras.Input(shape=IMG_SHAPE)
-    x = preprocess_input(inputs)
-    x = base_model(x, training=False)
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tfl.Dropout(.2)(x)  # prevent overfitting
-    # Classifying into 5 categories
-    prediction_layer = tf.keras.layers.Dense(5, activation='softmax')
-    outputs = prediction_layer(x)
-    # Create new model
-    new_model = tf.keras.Model(inputs, outputs)
-    new_model.save('task3_model.h5')
+    new_model = create_base_model(base_model)
+    # print(new_model.summary())
     return new_model
 
 
 def task4():
-    print("Task 4 - Prepare train & validation data")
+    print("Task 4 - Prepare train, validation and test datasets")
     train_dataset = image_dataset_from_directory(directory,
                                                  shuffle=True,
                                                  batch_size=BATCH_SIZE,
                                                  image_size=IMG_SIZE,
                                                  validation_split=0.2,
+                                                 label_mode='categorical',
                                                  subset='training',  # different subsets
                                                  seed=42)  # seed match to prevent overlapping
+    train_dataset = train_dataset.prefetch(buffer_size=AUTOTUNE)
     validation_dataset = image_dataset_from_directory(directory,
                                                       shuffle=True,
                                                       batch_size=BATCH_SIZE,
                                                       image_size=IMG_SIZE,
                                                       validation_split=0.2,
+                                                      label_mode='categorical',
                                                       subset='validation',  # different subsets
                                                       seed=42)  # seed match to prevent overlapping
+    test_dataset = validation_dataset.take(1)
+    validation_dataset = validation_dataset.skip(1)
+    print("Train dataset batches: {}".format(train_dataset.cardinality()))
+    print("Validation dataset batches: {}".format(
+        validation_dataset.cardinality()))
+    print("Test dataset batches: {}".format(test_dataset.cardinality()))
+    return [train_dataset, validation_dataset, test_dataset]
 
-    # Test dataset TODO
 
-    categories = train_dataset.class_names
-    return [train_dataset, validation_dataset, categories]
-
-
-def task5(v2_model, train_dataset, validation_dataset):
+def task5(model, train_dataset, validation_dataset, test_dataset):
     print("Task 5 - Compile and train with SGD")
-    model = tf.keras.models.clone_model(v2_model)
-
+    current_model = tf.keras.models.clone_model(model)
     opt = tf.keras.optimizers.SGD(
         learning_rate=0.01, momentum=0.0, nesterov=False, name="SGD"
     )
-
     # Train the model on new data
-    model.compile(optimizer=opt,
-                  loss=keras.losses.SparseCategoricalCrossentropy(),
-                  metrics="accuracy")
-
-    initial_epochs = 3
-    hist = model.fit(
-        train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
+    current_model.compile(optimizer=opt,
+                          loss=keras.losses.CategoricalCrossentropy(),
+                          metrics="accuracy")
+    current_model.fit(
+        train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
 
 
-def task7(v2_model, train_dataset, validation_dataset):
-    print("Task 7 - Try different learning rates, plot and conclude")
-
-    learning_rates = [0.02, 0.005, 0.03]
+def get_best_lr(model, train_dataset, validation_dataset):
+    learning_rates = [0.01, 0.02, 0.005, 0.03]
     hist_list = []
 
     for lr in learning_rates:
-        model = tf.keras.models.clone_model(v2_model)
+        print("Testing learning rate: {}".format(lr))
+        current_model = tf.keras.models.clone_model(model)
         opt = tf.keras.optimizers.SGD(
             learning_rate=lr, momentum=0.0, nesterov=False, name="SGD")
         # Train the model on new data with LR 0.02
-        model.compile(optimizer=opt,
-                      loss=keras.losses.SparseCategoricalCrossentropy(),
-                      metrics="accuracy")
-        initial_epochs = 3
-        hist = model.fit(
-            train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
+        current_model.compile(optimizer=opt,
+                              loss=keras.losses.CategoricalCrossentropy(),
+                              metrics="accuracy")
+
+        hist = current_model.fit(
+            train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
         hist_list.append(hist.history)
 
     best_model = hist_list[0]
@@ -109,23 +131,22 @@ def task7(v2_model, train_dataset, validation_dataset):
     return best_lr
 
 
-def task8(v2_model, train_dataset, validation_dataset, learning_rate):
-    print("Task 8 - Try different momentum rates, plot and conclude")
-
-    momentum_rates = [0.01, 0.02, 0.03]
+def get_best_mr(model, train_dataset, validation_dataset, learning_rate):
+    momentum_rates = [0.0, 0.01, 0.02, 0.03]
     hist_list = []
 
     for mr in momentum_rates:
-        model = tf.keras.models.clone_model(v2_model)
+        print("Testing momentum rate: {}".format(mr))
+        current_model = tf.keras.models.clone_model(model)
         opt = tf.keras.optimizers.SGD(
             learning_rate=learning_rate, momentum=mr, nesterov=False, name="SGD")
         # Train the model on new data with LR 0.02
-        model.compile(optimizer=opt,
-                      loss=keras.losses.SparseCategoricalCrossentropy(),
-                      metrics="accuracy")
-        initial_epochs = 3
-        hist = model.fit(
-            train_dataset, validation_data=validation_dataset, epochs=initial_epochs)
+        current_model.compile(optimizer=opt,
+                              loss=keras.losses.CategoricalCrossentropy(),
+                              metrics="accuracy")
+
+        hist = current_model.fit(
+            train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
         hist_list.append(hist.history)
 
     best_model = hist_list[0]
@@ -139,6 +160,31 @@ def task8(v2_model, train_dataset, validation_dataset, learning_rate):
     return best_mr
 
 
+def task7(model, train_dataset, validation_dataset):
+    print("Task 7 - Try different learning rates, plot and conclude")
+    best_lr = get_best_lr(model, train_dataset, validation_dataset)
+    print("Best found learning rate: {}".format(best_lr))
+    return best_lr
+
+
+def task8(model, train_dataset, validation_dataset, learning_rate):
+    print("Task 8 - Try different momentum rates, plot and conclude")
+    best_mr = get_best_mr(model, train_dataset,
+                          validation_dataset, learning_rate)
+    print("Best found momentum rate: {}".format(best_mr))
+    return best_mr
+
+
+def task9(base_model):
+    print("Task 9 - Use F(x) function to augument datasets")
+    return create_base_model(base_model, useAugmenter=True)
+
+
+def task10(model, train_dataset, validation_dataset, learning_rate):
+    print("Task 10 - Try different momentum rates with new dataset, plot and conclude")
+    return get_best_mr(model, train_dataset, validation_dataset, learning_rate)
+
+
 def my_team():
     '''
     Return the list of the team members of this assignment submission as a list
@@ -150,17 +196,17 @@ def my_team():
 
 if __name__ == "__main__":
     my_team()
-    # task1()
-    print("Task 2")
     base_model = task2()
-    v2_model = task3(base_model)
-    [train_dataset, validation_dataset, categories] = task4()  # TODO: test dataset
-    task5(v2_model, train_dataset, validation_dataset)
+    v2_non_accelerated_model = task3(base_model)
+    [train_dataset, validation_dataset, test_dataset] = task4()
+    task5(v2_non_accelerated_model, train_dataset,
+          validation_dataset, test_dataset)
     # TODO: task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
     best_learning_rate = task7(
-        v2_model, train_dataset, validation_dataset)  # TODO: plotting
-    best_momentum = task8(v2_model, train_dataset,
-                          validation_dataset, best_learning_rate)  # TODO: plotting
+        v2_non_accelerated_model, train_dataset, validation_dataset)  # TODO: plotting
+    best_momentum_non_accelerated = task8(v2_non_accelerated_model, train_dataset,
+                                          validation_dataset, best_learning_rate)  # TODO: plotting
 
-    # task9 - Prepare your training, validation and test sets
-    # task10 - Do 8 and 9 on new dataset
+    v2_accelerated_model = task9(base_model)
+    best_momentum_accelerated = task10(
+        v2_accelerated_model, train_dataset, validation_dataset, best_learning_rate)  # TODO: plotting
