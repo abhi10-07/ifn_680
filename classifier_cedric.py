@@ -1,5 +1,5 @@
 from re import A
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -98,13 +98,43 @@ def task5(model, train_dataset, validation_dataset, test_dataset):
     current_model.compile(optimizer=opt,
                           loss=keras.losses.CategoricalCrossentropy(),
                           metrics="accuracy")
-    current_model.fit(
+    history = current_model.fit(
         train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
+    return history
+
+def task6(hist, task_no, acc_filename, loss_filename):
+    # print(hist.history)
+    acc = hist.history['accuracy']
+    val_acc = hist.history['val_accuracy']
+    loss = hist.history['loss']
+    val_loss = hist.history['val_loss']
+    epochs = range(1,len(acc)+1)
+    # Training and validation accuracy
+    plt.figure()
+    plt.plot(epochs, acc, 'b', label = 'Training accuracy')
+    plt.plot(epochs, val_acc, 'r', label='Validation accuracy')
+    plt.title('Task-'+format(task_no)+'A: Training and validation accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.savefig(acc_filename)
+    plt.show()
+    # Training and validation loss
+    plt.figure()
+    plt.plot(epochs, loss, 'b', label = 'Training loss')
+    plt.plot(epochs, val_loss, 'r', label='Validation loss')
+    plt.title('Task-'+format(task_no)+'B: Training and validation loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig(loss_filename)
+    plt.show()
 
 
 def get_best_lr(model, train_dataset, validation_dataset):
     learning_rates = [0.01, 0.02, 0.005, 0.03]
     hist_list = []
+    history_arr = []
 
     for lr in learning_rates:
         print("Testing learning rate: {}".format(lr))
@@ -119,6 +149,7 @@ def get_best_lr(model, train_dataset, validation_dataset):
         hist = current_model.fit(
             train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
         hist_list.append(hist.history)
+        history_arr.append(hist)
 
     best_model = hist_list[0]
     best_lr = learning_rates[0]
@@ -128,12 +159,13 @@ def get_best_lr(model, train_dataset, validation_dataset):
             best_model = hist_list[i]
             best_lr = learning_rates[i]
 
-    return best_lr
+    return [best_lr,learning_rates,history_arr]
 
 
 def get_best_mr(model, train_dataset, validation_dataset, learning_rate):
     momentum_rates = [0.0, 0.01, 0.02, 0.03]
     hist_list = []
+    history_arr = []
 
     for mr in momentum_rates:
         print("Testing momentum rate: {}".format(mr))
@@ -148,6 +180,7 @@ def get_best_mr(model, train_dataset, validation_dataset, learning_rate):
         hist = current_model.fit(
             train_dataset, validation_data=validation_dataset, epochs=EPOCHS)
         hist_list.append(hist.history)
+        history_arr.append(hist)
 
     best_model = hist_list[0]
     best_mr = momentum_rates[0]
@@ -157,21 +190,31 @@ def get_best_mr(model, train_dataset, validation_dataset, learning_rate):
             best_model = hist_list[i]
             best_mr = momentum_rates[i]
 
-    return best_mr
+    return [best_mr, momentum_rates, history_arr]
 
 
 def task7(model, train_dataset, validation_dataset):
     print("Task 7 - Try different learning rates, plot and conclude")
-    best_lr = get_best_lr(model, train_dataset, validation_dataset)
+    [best_lr,learning_rates, history_arr] = get_best_lr(model, train_dataset, validation_dataset)
     print("Best found learning rate: {}".format(best_lr))
+    for i in range(len(history_arr)):
+        task_no = '7-learning-rate:'+ format(learning_rates[i])
+        acc_filename = 'Accuracy-task-'+task_no+'.jpg'
+        loss_filename = 'Loss-task-'+task_no+'.jpg'
+        task6(history_arr[i], task_no, acc_filename, loss_filename)
     return best_lr
 
 
 def task8(model, train_dataset, validation_dataset, learning_rate):
     print("Task 8 - Try different momentum rates, plot and conclude")
-    best_mr = get_best_mr(model, train_dataset,
+    [best_mr, momentum_rates, history_arr] = get_best_mr(model, train_dataset,
                           validation_dataset, learning_rate)
     print("Best found momentum rate: {}".format(best_mr))
+    for i in range(len(history_arr)):
+        task_no = '8-learning-rate:'+ format(momentum_rates[i])
+        acc_filename = 'Accuracy-task-'+task_no+'.jpg'
+        loss_filename = 'Loss-task-'+task_no+'.jpg'
+        task6(history_arr[i], task_no, acc_filename, loss_filename)
     return best_mr
 
 
@@ -182,8 +225,13 @@ def task9(base_model):
 
 def task10(model, train_dataset, validation_dataset, learning_rate):
     print("Task 10 - Try different momentum rates with new dataset, plot and conclude")
-    return get_best_mr(model, train_dataset, validation_dataset, learning_rate)
-
+    [best_mr, momentum_rates, history_arr] =  get_best_mr(model, train_dataset, validation_dataset, learning_rate)
+    for i in range(len(history_arr)):
+        task_no = '10-learning-rate:'+ format(momentum_rates[i])
+        acc_filename = 'Accuracy-task-'+task_no+'.jpg'
+        loss_filename = 'Loss-task-'+task_no+'.jpg'
+        task6(history_arr[i], task_no, acc_filename, loss_filename)
+    return best_mr
 
 def my_team():
     '''
@@ -199,9 +247,9 @@ if __name__ == "__main__":
     base_model = task2()
     v2_non_accelerated_model = task3(base_model)
     [train_dataset, validation_dataset, test_dataset] = task4()
-    task5(v2_non_accelerated_model, train_dataset,
+    history = task5(v2_non_accelerated_model, train_dataset,
           validation_dataset, test_dataset)
-    # TODO: task6 - Plot the training and validation errors vs time as well as the training and validation accuracies
+    task6(history, 6, 'Accuracy-task-6.jpg', 'Loss-task-6.jpg')
     best_learning_rate = task7(
         v2_non_accelerated_model, train_dataset, validation_dataset)  # TODO: plotting
     best_momentum_non_accelerated = task8(v2_non_accelerated_model, train_dataset,
