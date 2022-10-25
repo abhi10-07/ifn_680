@@ -2,20 +2,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
+# Constants and vars
 BATCH_SIZE = 32
 IMG_SIZE = (224, 224)
 IMG_SHAPE = IMG_SIZE + (3,)
 EPOCHS = 6
+AUTOTUNE = tf.data.AUTOTUNE
 preprocess_input = tf.keras.applications.mobilenet_v2.preprocess_input
 directory = "small_flower_dataset/"
 
-AUTOTUNE = tf.data.AUTOTUNE
+# Ignore Warnings due to data augmentation giving while_loop warnings while converting. Seems to be a keras bug in certain versions.
+# https://stackoverflow.com/questions/73304934/tensorflow-data-augmentation-gives-a-warning-using-a-while-loop-for-converting
 tf.get_logger().setLevel('ERROR')
 
+# Data preprocess layers
 resize_and_rescale = tf.keras.Sequential([
     tf.keras.layers.Resizing(IMG_SIZE[0], IMG_SIZE[1]),
     tf.keras.layers.Rescaling(1./127.5, offset=-1)
 ])
+
+# Data augmentation layers
 data_augmentation = tf.keras.Sequential([
     tf.keras.layers.RandomFlip("horizontal_and_vertical"),
     tf.keras.layers.RandomRotation(0.2),
@@ -23,6 +29,10 @@ data_augmentation = tf.keras.Sequential([
 
 
 def create_base_model(base_model):
+    '''
+    Adds a preprocess input layer and output layers to a MobileNetV2 model.
+    Returns a model of the given input model with new input and output layers.
+    '''
     inputs = tf.keras.Input(shape=IMG_SHAPE)
     x = preprocess_input(inputs)
     x = base_model(x, training=False)
@@ -38,6 +48,10 @@ def create_base_model(base_model):
 
 
 def prepare(ds, shuffle=False, augment=False):
+    '''
+    Prepares given datasets for the model and augments the data.
+    Returns a resized, rescaled, shuffeld and augmented dataset.
+    '''
     # Resize and rescale all datasets.
     ds = ds.map(lambda x, y: (resize_and_rescale(x), y),
                 num_parallel_calls=AUTOTUNE)
@@ -55,6 +69,10 @@ def prepare(ds, shuffle=False, augment=False):
 
 
 def get_best_lr(model, train_dataset, validation_dataset, test_dataset):
+    '''
+    Tests multiple learning rates and picks the best one.
+    Returns the best found learning rate.
+    '''
     learning_rates = [0.00001, 0.0001, 0.001, 0.01]
     hist_list = []
     acc_list = []
@@ -86,6 +104,10 @@ def get_best_lr(model, train_dataset, validation_dataset, test_dataset):
 
 
 def get_best_mr(model, train_dataset, validation_dataset, test_dataset, learning_rate):
+    '''
+    Tests multiple momentum rates and picks the best one.
+    Returns the best found momentum rate.
+    '''
     momentum_rates = [0.0, 0.0001, 0.001, 0.01]
     hist_list = []
     acc_list = []
@@ -116,7 +138,9 @@ def get_best_mr(model, train_dataset, validation_dataset, test_dataset, learning
 
 
 def bar_plot(labels, acc_arr, loss_arr, title, filename):
-
+    '''
+    Uses pyplot to plot provided data to the function. 
+    '''
     # print(labels,acc_arr, loss_arr)
     x = np.arange(len(labels))
     width = 0.35
@@ -139,6 +163,10 @@ def bar_plot(labels, acc_arr, loss_arr, title, filename):
 
 
 def task2():
+    '''
+    Using the tf.keras.applications module download a pretrained MobileNetV2 network.
+    Returns a model of a pretrained MobileNetV2 network WITHOUT the output layer.
+    '''
     print("Task 2 - Use MobileNetV2 network")
     base_model = tf.keras.applications.MobileNetV2(input_shape=IMG_SHAPE,
                                                    include_top=False,
@@ -149,6 +177,10 @@ def task2():
 
 
 def task3(base_model):
+    '''
+    Replace the last layer of the downloaded neural network with a Dense layer of the appropriate shape for the 5 classes of the small flower dataset {(x1,t1), (x2,t2),..., (xm,tm)}     
+    Returns model with a Dense layer shape of 5 classes.
+    '''
     print("Task 3 - Replace last layer of downloaded NN")
     new_model = create_base_model(base_model)
     # print(new_model.summary())
@@ -156,6 +188,10 @@ def task3(base_model):
 
 
 def task4():
+    '''
+    Prepare your training, validation and test sets for the non-accelerated version of transfer learning.     
+    Returns new training, validation and test datasets in an array of form [train,validation,test].
+    '''
     print("Task 4 - Prepare train, validation and test datasets")
     train_dataset = tf.keras.utils.image_dataset_from_directory(directory,
                                                                 shuffle=True,
@@ -184,6 +220,10 @@ def task4():
 
 
 def task5(model, train_dataset, validation_dataset, test_dataset):
+    '''
+    Compile and train your model with an SGD3 optimizer using the following parameters learning_rate=0.01, momentum=0.0, nesterov=False.
+    Returns training history as an object. 
+    '''
     print("Task 5 - Compile and train with SGD")
     current_model = tf.keras.models.clone_model(model)
     opt = tf.keras.optimizers.SGD(
@@ -203,6 +243,9 @@ def task5(model, train_dataset, validation_dataset, test_dataset):
 
 
 def task6(hist, task_no, acc_filename, loss_filename):
+    '''
+    Plot the training and validation errors vs time as well as the training and validation accuracies.
+    '''
     # print(hist.history)
     acc = hist.history['accuracy']
     val_acc = hist.history['val_accuracy']
@@ -232,6 +275,10 @@ def task6(hist, task_no, acc_filename, loss_filename):
 
 
 def task7(model, train_dataset, validation_dataset, test_dataset):
+    '''
+    Experiment with 3 different orders of magnitude for the learning rate. Plot the results, draw conclusions.
+    Returns the best calculated learning rate.
+    '''
     print("Task 7 - Try different learning rates, plot and conclude")
     [best_lr, learning_rates, hist_list] = get_best_lr(
         model, train_dataset, validation_dataset, test_dataset)
@@ -251,6 +298,10 @@ def task7(model, train_dataset, validation_dataset, test_dataset):
 
 
 def task8(model, train_dataset, validation_dataset, test_dataset, learning_rate):
+    '''
+    With the best learning rate that you found in task7, add a non zero momentum to the training with the SGD optimizer (consider 3 values for the momentum). Report how your results change.
+    Returns the best calculated momentum rate.
+    '''
     print("Task 8 - Try different momentum rates, plot and conclude")
     [best_mr, momentum_rates, hist_list] = get_best_mr(model, train_dataset,
                                                        validation_dataset, test_dataset, learning_rate)
@@ -269,6 +320,10 @@ def task8(model, train_dataset, validation_dataset, test_dataset, learning_rate)
 
 
 def task9(train_dataset, validation_dataset, test_dataset):
+    '''
+    Prepare your training, validation and test sets. Those are based on  {(F(x1).t1),(F(x2),t2),...,(F(xm),tm)}
+    Returns new training, validation and test datasets in an array of form [train,validation,test].
+    '''
     print("Task 9 - Prepare train, validation and datasets based on F(x)")
     train_ds = prepare(train_dataset, shuffle=True, augment=True)
     val_ds = prepare(validation_dataset)
@@ -278,6 +333,10 @@ def task9(train_dataset, validation_dataset, test_dataset):
 
 
 def task10(model, fx_train_dataset, fx_validation_dataset, fx_test_dataset):
+    '''
+    Perform Task 8 on the new dataset created in Task 9.
+    Returns the best calculated learning & momentum rate in an array of form [learning_rate, momentum_rate]
+    '''
     print("Task 10 - Try different learning/momentum rates with new dataset, plot and conclude")
     [best_lr, learning_rates, hist_list] = get_best_lr(
         model, fx_train_dataset, fx_validation_dataset, fx_test_dataset)
@@ -293,7 +352,7 @@ def task10(model, fx_train_dataset, fx_validation_dataset, fx_test_dataset):
 
     bar_plot(momentum_rates, acc_arr, loss_arr, title, filename)
 
-    return best_mr
+    return [best_lr, best_mr]
 
 
 def my_team():
@@ -335,5 +394,5 @@ if __name__ == "__main__":
         train_dataset, validation_dataset, test_dataset)
 
     # Task10
-    best_momentum_accelerated = task10(
+    [best_learning_rate_accelerated, best_momentum_accelerated] = task10(
         model, fx_train_dataset, fx_validation_dataset, fx_test_dataset)
