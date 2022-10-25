@@ -28,10 +28,14 @@ data_augmentation = tf.keras.Sequential([
 ])
 
 
-def create_base_model(base_model):
+def create_new_model(base_model):
     '''
     Adds a preprocess input layer and output layers to a MobileNetV2 model.
-    Returns a model of the given input model with new input and output layers.
+
+    @param base_model: Takes a MobileNetV2 base model WITHOUT the output layers as an input.
+
+    @return
+        Returns a model of the given input model with new input and output layers.
     '''
     inputs = tf.keras.Input(shape=IMG_SHAPE)
     x = preprocess_input(inputs)
@@ -50,7 +54,15 @@ def create_base_model(base_model):
 def prepare(ds, shuffle=False, augment=False):
     '''
     Prepares given datasets for the model and augments the data.
-    Returns a resized, rescaled, shuffeld and augmented dataset.
+
+    @param ds: Dataset of type 'tf.keras.datasets'
+
+    @param shuffle: Boolean to determine if dataset should be shuffled
+
+    @param augment: Bollean to determine if dataset should be augmented
+
+    @return
+        Returns a resized, rescaled, shuffeld and augmented dataset.
     '''
     # Resize and rescale all datasets.
     ds = ds.map(lambda x, y: (resize_and_rescale(x), y),
@@ -70,8 +82,18 @@ def prepare(ds, shuffle=False, augment=False):
 
 def get_best_lr(model, train_dataset, validation_dataset, test_dataset):
     '''
-    Tests multiple learning rates and picks the best one.
-    Returns the best found learning rate.
+    Tests multiple learning rates and picks the best one for the given input.
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns the best found learning rate.
     '''
     learning_rates = [0.00001, 0.0001, 0.001, 0.01]
     hist_list = []
@@ -105,8 +127,18 @@ def get_best_lr(model, train_dataset, validation_dataset, test_dataset):
 
 def get_best_mr(model, train_dataset, validation_dataset, test_dataset, learning_rate):
     '''
-    Tests multiple momentum rates and picks the best one.
-    Returns the best found momentum rate.
+    Tests multiple momentum rates and picks the best one for the given input.
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns the best found momentum rate.
     '''
     momentum_rates = [0.0, 0.0001, 0.001, 0.01]
     hist_list = []
@@ -139,7 +171,17 @@ def get_best_mr(model, train_dataset, validation_dataset, test_dataset, learning
 
 def bar_plot(labels, acc_arr, loss_arr, title, filename):
     '''
-    Uses pyplot to plot provided data to the function. 
+    Uses pyplot to plot provided data to the function and saves it as an image. 
+
+    @param labels: Labels for x-axis as array of strings
+
+    @param acc_arr: Accuarcy values as array
+
+    @param loss_arr: Loss values as array
+
+    @param title: Title as string
+
+    @param filename: Filename as string
     '''
     # print(labels,acc_arr, loss_arr)
     x = np.arange(len(labels))
@@ -165,7 +207,9 @@ def bar_plot(labels, acc_arr, loss_arr, title, filename):
 def task2():
     '''
     Using the tf.keras.applications module download a pretrained MobileNetV2 network.
-    Returns a model of a pretrained MobileNetV2 network WITHOUT the output layer.
+
+    @return
+        Returns a model of a pretrained MobileNetV2 network WITHOUT the output layer.
     '''
     print("Task 2 - Use MobileNetV2 network")
     base_model = tf.keras.applications.MobileNetV2(input_shape=IMG_SHAPE,
@@ -179,18 +223,24 @@ def task2():
 def task3(base_model):
     '''
     Replace the last layer of the downloaded neural network with a Dense layer of the appropriate shape for the 5 classes of the small flower dataset {(x1,t1), (x2,t2),..., (xm,tm)}     
-    Returns model with a Dense layer shape of 5 classes.
+
+    @param base_model: Base MobileNetV2 model of type 'tf.keras.Model()'
+
+    @return
+        Returns model with a Dense layer shape of 5 classes.
     '''
     print("Task 3 - Replace last layer of downloaded NN")
-    new_model = create_base_model(base_model)
+    new_model = create_new_model(base_model)
     # print(new_model.summary())
     return new_model
 
 
 def task4():
     '''
-    Prepare your training, validation and test sets for the non-accelerated version of transfer learning.     
-    Returns new training, validation and test datasets in an array of form [train,validation,test].
+    Prepare your training, validation and test sets for the non-accelerated version of transfer learning. 
+
+    @return    
+        Returns new training, validation and test datasets in an array of form [train,validation,test].
     '''
     print("Task 4 - Prepare train, validation and test datasets")
     train_dataset = tf.keras.utils.image_dataset_from_directory(directory,
@@ -222,7 +272,17 @@ def task4():
 def task5(model, train_dataset, validation_dataset, test_dataset):
     '''
     Compile and train your model with an SGD3 optimizer using the following parameters learning_rate=0.01, momentum=0.0, nesterov=False.
-    Returns training history as an object. 
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns training history as an object. 
     '''
     print("Task 5 - Compile and train with SGD")
     current_model = tf.keras.models.clone_model(model)
@@ -245,6 +305,14 @@ def task5(model, train_dataset, validation_dataset, test_dataset):
 def task6(hist, task_no, acc_filename, loss_filename):
     '''
     Plot the training and validation errors vs time as well as the training and validation accuracies.
+
+    @param hist: Keras history object
+
+    @param task_no: Integer to identify the task
+
+    @param acc_filename: Filename as string
+
+    @param loss_filename: Filename as string
     '''
     # print(hist.history)
     acc = hist.history['accuracy']
@@ -277,7 +345,17 @@ def task6(hist, task_no, acc_filename, loss_filename):
 def task7(model, train_dataset, validation_dataset, test_dataset):
     '''
     Experiment with 3 different orders of magnitude for the learning rate. Plot the results, draw conclusions.
-    Returns the best calculated learning rate.
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns the best calculated learning rate.
     '''
     print("Task 7 - Try different learning rates, plot and conclude")
     [best_lr, learning_rates, hist_list] = get_best_lr(
@@ -300,7 +378,19 @@ def task7(model, train_dataset, validation_dataset, test_dataset):
 def task8(model, train_dataset, validation_dataset, test_dataset, learning_rate):
     '''
     With the best learning rate that you found in task7, add a non zero momentum to the training with the SGD optimizer (consider 3 values for the momentum). Report how your results change.
-    Returns the best calculated momentum rate.
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @param learning_rate: Defined learning rate for task8
+
+    @return
+        Returns the best calculated momentum rate.
     '''
     print("Task 8 - Try different momentum rates, plot and conclude")
     [best_mr, momentum_rates, hist_list] = get_best_mr(model, train_dataset,
@@ -322,7 +412,15 @@ def task8(model, train_dataset, validation_dataset, test_dataset, learning_rate)
 def task9(train_dataset, validation_dataset, test_dataset):
     '''
     Prepare your training, validation and test sets. Those are based on  {(F(x1).t1),(F(x2),t2),...,(F(xm),tm)}
-    Returns new training, validation and test datasets in an array of form [train,validation,test].
+
+    @param train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns new training, validation and test datasets in an array of form [train,validation,test].
     '''
     print("Task 9 - Prepare train, validation and datasets based on F(x)")
     train_ds = prepare(train_dataset, shuffle=True, augment=True)
@@ -335,7 +433,17 @@ def task9(train_dataset, validation_dataset, test_dataset):
 def task10(model, fx_train_dataset, fx_validation_dataset, fx_test_dataset):
     '''
     Perform Task 8 on the new dataset created in Task 9.
-    Returns the best calculated learning & momentum rate in an array of form [learning_rate, momentum_rate]
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param fx_train_dataset: Train dataset of type 'tf.keras.datasets'
+
+    @param fx_validation_dataset: Valdiation dataset of type 'tf.keras.datasets'
+
+    @param fx_test_dataset: Test dataset of type 'tf.keras.datasets'
+
+    @return
+        Returns the best calculated learning & momentum rate in an array of form [learning_rate, momentum_rate]
     '''
     print("Task 10 - Try different learning/momentum rates with new dataset, plot and conclude")
     [best_lr, learning_rates, hist_list] = get_best_lr(
