@@ -219,6 +219,22 @@ def bar_plot(labels, acc_arr, loss_arr, title, filename):
     plt.show()
 
 def prediction_plot(model_file, data, class_names, filename):
+    '''
+    Load the saved model and prediction on the image dataset is executed
+
+    @param model: Model of type 'tf.keras.Model()'
+
+    @param model_file: Name of the model to be loaded
+
+    @param data: Test dataset of type 'tf.keras.datasets'
+
+    @param class_names: Classification labels such as daisy, tulip etc.
+
+    @param filename: Name of the image file to be saved.
+
+    @return
+        Returns prediction plot image 
+    '''
     model = tf.keras.models.load_model(model_file)
     image_batch, label_batch = next(iter(data))
     # turn the original labels into human-readable text
@@ -246,10 +262,6 @@ def prediction_plot(model_file, data, class_names, filename):
     _ = plt.suptitle("Model predictions (blue: correct, red: incorrect)")
     plt.savefig(filename)
     plt.show()
-
-def dump(obj):
-  for attr in dir(obj):
-    print("obj.%s = %r" % (attr, getattr(obj, attr)))
 
 def task2():
     '''
