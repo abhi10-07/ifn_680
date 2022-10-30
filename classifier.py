@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import confusion_matrix
-import sklearn.metrics as sk_metrics
-import os
 
 # Constants and vars
 BATCH_SIZE = 32
@@ -41,25 +38,18 @@ def create_new_model(base_model):
         Returns a model of the given input model with new input and output layers.
     '''
 
-    # inputs = tf.keras.Input(shape=IMG_SHAPE)
-    # x = preprocess_input(inputs)
-    # x = base_model(x, training=False)
-    # x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    # x = tf.keras.layers.Dropout(.2)(x)  # prevent overfitting
-    
-    # # Classifying into 5 categories
-    # prediction_layer = tf.keras.layers.Dense(5, activation="softmax")
-    # outputs = prediction_layer(x)
-
-    x = base_model.output
+    inputs = tf.keras.Input(shape=IMG_SHAPE)
+    x = preprocess_input(inputs)
+    x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    # x = tf.keras.layers.Dense(512, activation="relu")(x)
-    # x = tf.keras.layers.Dense(256, activation="relu")(x)
-    # x = tf.keras.layers.Dense(128, activation="relu")(x)
-    prediction_layer = tf.keras.layers.Dense(5, activation="softmax")(x)
+    x = tf.keras.layers.Dropout(.2)(x)  # prevent overfitting
+
+    # Classifying into 5 categories
+    prediction_layer = tf.keras.layers.Dense(5, activation="softmax")
+    outputs = prediction_layer(x)
+
     # Create new model
-    new_model = tf.keras.Model(inputs = base_model.input, outputs = prediction_layer)
-    # print(new_model.summary())
+    new_model = tf.keras.Model(inputs, outputs)
     return new_model
 
 
@@ -129,8 +119,6 @@ def get_best_lr(model, train_dataset, validation_dataset, test_dataset):
     best_lr = learning_rates[0]
     best_acc = acc_list[0]
 
-    print(acc_list)
-
     for i in range(len(learning_rates)):
         if(acc_list[i] > best_acc):
             best_acc = acc_list[i]
@@ -171,7 +159,8 @@ def get_best_mr(model, train_dataset, validation_dataset, test_dataset, learning
         loss, acc = current_model.evaluate(test_dataset)
         acc_list.append(acc)
         loss_list.append(loss)
-        current_model.save('task'+ format(task_no) +'-momentum-' + format(index+1) + '.h5')
+        current_model.save('task' + format(task_no) +
+                           '-momentum-' + format(index+1) + '.h5')
 
     best_mr = momentum_rates[0]
     best_acc = acc_list[0]
@@ -198,7 +187,6 @@ def bar_plot(labels, acc_arr, loss_arr, title, filename):
 
     @param filename: Filename as string
     '''
-    # print(labels,acc_arr, loss_arr)
     x = np.arange(len(labels))
     width = 0.35
 
@@ -217,6 +205,7 @@ def bar_plot(labels, acc_arr, loss_arr, title, filename):
     fig.tight_layout()
     plt.savefig(filename)
     plt.show()
+
 
 def prediction_plot(model_file, data, class_names, filename):
     '''
@@ -238,18 +227,20 @@ def prediction_plot(model_file, data, class_names, filename):
     model = tf.keras.models.load_model(model_file)
     image_batch, label_batch = next(iter(data))
     # turn the original labels into human-readable text
-    label_batch = [class_names[np.argmax(label_batch[i])] for i in range(BATCH_SIZE)]
+    label_batch = [class_names[np.argmax(label_batch[i])]
+                   for i in range(BATCH_SIZE)]
     # predict the images on the model
     predicted_class_names = model.predict(image_batch)
-    predicted_ids = [np.argmax(predicted_class_names[i]) for i in range(BATCH_SIZE)]
+    predicted_ids = [np.argmax(predicted_class_names[i])
+                     for i in range(BATCH_SIZE)]
     # turn the predicted vectors to human readable labels
     predicted_class_names = np.array([class_names[id] for id in predicted_ids])
-    # some nice plotting
-    plt.figure(figsize=(10,9))
+    # plotting
+    plt.figure(figsize=(10, 9))
     for n in range(24
-    ):
-        plt.subplot(6,4,n+1)
-        plt.subplots_adjust(hspace = 0.3)
+                   ):
+        plt.subplot(6, 4, n+1)
+        plt.subplots_adjust(hspace=0.3)
         plt.imshow(image_batch[n])
         if predicted_class_names[n] == label_batch[n]:
             color = "blue"
@@ -274,8 +265,7 @@ def task2():
     base_model = tf.keras.applications.MobileNetV2(input_shape=IMG_SHAPE,
                                                    include_top=False,
                                                    weights='imagenet')
-    # base_model.trainable = False
-    # print(base_model.summary())
+    base_model.trainable = False
     return base_model
 
 
@@ -290,9 +280,6 @@ def task3(base_model):
     '''
     print("Task 3 - Replace last layer of downloaded NN")
     new_model = create_new_model(base_model)
-    for layers in new_model.layers[:-1]:
-        layers.trainable = False
-    # print(new_model.summary())
     return new_model
 
 
@@ -313,7 +300,6 @@ def task4():
                                                                 subset='training',  # different subsets
                                                                 seed=42)  # seed match to prevent overlapping
 
-    
     train_dataset = train_dataset.prefetch(buffer_size=AUTOTUNE)
     validation_dataset = tf.keras.utils.image_dataset_from_directory(directory,
                                                                      shuffle=True,
@@ -327,7 +313,8 @@ def task4():
     test_dataset = validation_dataset.take(1)
     validation_dataset = validation_dataset.skip(1)
     print("Train dataset batches: {}".format(train_dataset.cardinality()))
-    print("Validation dataset batches: {}".format(validation_dataset.cardinality()))
+    print("Validation dataset batches: {}".format(
+        validation_dataset.cardinality()))
     print("Test dataset batches: {}".format(test_dataset.cardinality()))
     return [train_dataset, validation_dataset, test_dataset, class_names]
 
@@ -380,7 +367,6 @@ def task6(hist, task_no, acc_filename, loss_filename):
 
     @param loss_filename: Filename as string
     '''
-    # print(hist.history)
     acc = hist.history['accuracy']
     val_acc = hist.history['val_accuracy']
     loss = hist.history['loss']
@@ -427,7 +413,7 @@ def task7(model, train_dataset, validation_dataset, test_dataset):
     [best_lr, learning_rates, acc_list, loss_list] = get_best_lr(
         model, train_dataset, validation_dataset, test_dataset)
     print("Best found learning rate: {}".format(best_lr))
-    
+
     filename = 'Task7-best-learning-rate.jpg'
     title = "Get highest Accuracy/Loss for Learning rate for task 7"
 
@@ -455,7 +441,7 @@ def task8(model, train_dataset, validation_dataset, test_dataset, learning_rate)
     '''
     print("Task 8 - Try different momentum rates, plot and conclude")
     [best_mr, momentum_rates, acc_list, loss_list] = get_best_mr(model, train_dataset,
-                                                       validation_dataset, test_dataset, learning_rate, 8)
+                                                                 validation_dataset, test_dataset, learning_rate, 8)
     print("Best found momentum rate: {}".format(best_mr))
     filename = 'Task8-best-momentum-rate.jpg'
     title = "Get highest Accuracy/Loss for Momentum rate for Task 8"
@@ -537,12 +523,12 @@ if __name__ == "__main__":
 
     # Task4
     [train_dataset, validation_dataset, test_dataset, class_names] = task4()
-    
 
     # Task5
     history = task5(model, train_dataset,
                     validation_dataset, test_dataset)
-    prediction_plot('task5.h5', test_dataset, class_names, 'prediction-task-5.jpg')
+    prediction_plot('task5.h5', test_dataset,
+                    class_names, 'prediction-task-5.jpg')
     # Task6
     task6(history, 6, 'Accuracy-task-6.jpg', 'Loss-task-6.jpg')
 
@@ -553,10 +539,14 @@ if __name__ == "__main__":
     # Task8
     best_momentum_non_accelerated = task8(
         model, train_dataset, validation_dataset, test_dataset, best_learning_rate_non_accelerated)
-    prediction_plot('task8-momentum-1.h5', test_dataset, class_names, 'prediction-task-8.1.jpg')
-    prediction_plot('task8-momentum-2.h5', test_dataset, class_names, 'prediction-task-8.2.jpg')
-    prediction_plot('task8-momentum-3.h5', test_dataset, class_names, 'prediction-task-8.3.jpg')
-    prediction_plot('task8-momentum-4.h5', test_dataset, class_names, 'prediction-task-8.4.jpg')   
+    prediction_plot('task8-momentum-1.h5', test_dataset,
+                    class_names, 'prediction-task-8.1.jpg')
+    prediction_plot('task8-momentum-2.h5', test_dataset,
+                    class_names, 'prediction-task-8.2.jpg')
+    prediction_plot('task8-momentum-3.h5', test_dataset,
+                    class_names, 'prediction-task-8.3.jpg')
+    prediction_plot('task8-momentum-4.h5', test_dataset,
+                    class_names, 'prediction-task-8.4.jpg')
 
     # Task9
     [fx_train_dataset, fx_validation_dataset, fx_test_dataset] = task9(
@@ -566,7 +556,11 @@ if __name__ == "__main__":
     [best_learning_rate_accelerated, best_momentum_accelerated] = task10(
         model, fx_train_dataset, fx_validation_dataset, fx_test_dataset)
 
-    prediction_plot('task10-momentum-1.h5', test_dataset, class_names, 'prediction-task-10.1.jpg')
-    prediction_plot('task10-momentum-2.h5', test_dataset, class_names, 'prediction-task-10.2.jpg')
-    prediction_plot('task10-momentum-3.h5', test_dataset, class_names, 'prediction-task-10.3.jpg')
-    prediction_plot('task10-momentum-4.h5', test_dataset, class_names, 'prediction-task-10.4.jpg')
+    prediction_plot('task10-momentum-1.h5', test_dataset,
+                    class_names, 'prediction-task-10.1.jpg')
+    prediction_plot('task10-momentum-2.h5', test_dataset,
+                    class_names, 'prediction-task-10.2.jpg')
+    prediction_plot('task10-momentum-3.h5', test_dataset,
+                    class_names, 'prediction-task-10.3.jpg')
+    prediction_plot('task10-momentum-4.h5', test_dataset,
+                    class_names, 'prediction-task-10.4.jpg')
